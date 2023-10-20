@@ -1,5 +1,15 @@
 from flask import Flask, request
 from model.classify import email_body_classifier
+import os
+
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+################ for finding look-alikes #################
+LOOK_ALIKES: str = ""
+with open(f"{CURRENT_DIR}/look-alikes.txt", "r", encoding="utf-8") as file:
+    LOOK_ALIKES = file.read()
+    LOOK_ALIKES = LOOK_ALIKES.replace("\n", "")
+###########################################################
 
 app = Flask(__name__)
 
@@ -9,3 +19,13 @@ def classify_email_body():
     email_body: str = request.data.decode("utf-8")
     prediction: str = email_body_classifier.predict(email_body)
     return prediction
+
+
+@app.post("/find-look-alikes")
+def find_look_alikes():
+    content: str = request.data.decode("unicode-escape")
+    print(content)
+    for letter in content:
+        if letter in LOOK_ALIKES:
+            return "true"
+    return "false"
