@@ -1,4 +1,4 @@
-from flask import Flask, request, Response
+from flask import Flask, request, Response, render_template
 from flask_cors import CORS
 from model.classify import email_body_classifier
 import os
@@ -8,6 +8,7 @@ import json
 import re
 import base64
 from collections import defaultdict
+import pandas as pd
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -21,6 +22,84 @@ with open(f"{CURRENT_DIR}/look-alikes.txt", "r", encoding="utf-8") as file:
 app = Flask(__name__)
 CORS(app, resources={r"*": {"origins": "*"}})
 
+##### report frontend and backend #########################
+
+REPORTED_FILE = f"{CURRENT_DIR}/reported.json"
+
+
+@app.route("/")
+def review_reports():
+    with open(REPORTED_FILE, "r") as file:
+        content = file.read()
+        data = json.loads(content)
+    return render_template("index.html", data=data)
+
+
+def remove_entry_from_json(i: int):
+    with open(REPORTED_FILE, "r") as file:
+        old: list = json.loads(file.read())
+
+    with open(REPORTED_FILE, "w") as file:
+        del old[i]
+        new = json.dumps(old)
+        file.write(new)
+
+
+@app.post("/reject-mail")
+def reject_mail():
+    try:
+        i = int(request.data.decode("utf-8"))
+    except:
+        return "Failed", 500
+
+    remove_entry_from_json(i)
+
+
+@app.post("/accept-mail")
+def accept_mail():
+    try:
+        i = int(request.data.decode("utf-8"))
+    except:
+        return "Failed", 500
+
+    with open(REPORTED_FILE, "r") as file:
+        data = json.loads(file.read())[i]
+        email_text = data["Email Text"]
+        email_type = data["Email Type"]
+
+    remove_entry_from_json(i)
+
+    # add to dataset
+    df: pd.DataFrame = pd.read_csv(f"{CURRENT_DIR}/model/Phishing_Email.csv")
+    df.loc[len(df.index)] = [len(df.index), email_text, email_type]
+    print(df.tail())
+
+    return "Success", 200
+
+
+@app.post("/report-mail")
+def report_mail():
+    email_body: str = request.data.decode("utf-8")
+    type: str = "Phishing Email"
+
+    data: dict = {
+        "Email Text": email_body,
+        "Email Type": type
+    }
+
+    # temporarily save to reported.json until review
+    with open(REPORTED_FILE, "r") as file:
+        old: list = json.loads(file.read())
+        old.append(data)
+
+    with open(REPORTED_FILE, "w") as file:
+        new = json.dumps(old)
+        file.write(new)
+
+    return "Success", 200
+
+
+###########################################################
 
 @app.post("/email-body-classification")
 def classify_email_body():

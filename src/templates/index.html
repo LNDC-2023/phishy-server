@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Review Mail Reports</title>
+
+		<style>
+			body {
+				width: 100vw;
+			}
+			p {
+				word-wrap: break-word;
+			}
+		</style>
+
+		<script defer>
+			async function sendIndex(i, endpoint) {
+				await fetch(endpoint, {
+					method: "POST",
+					headers: { "Content-Type": "text/plain" },
+					body: i.toString(),
+				});
+				window.location.reload();
+			}
+		</script>
+	</head>
+	<body>
+		{% for mail in data %}
+		<p>{{mail["Email Text"]}}</p>
+		<br />
+		<button onclick="sendIndex({{loop.index0}}, '/accept-mail')">✅</button>
+		<button onclick="sendIndex({{loop.index0}}, '/reject-mail')">❌</button>
+		<hr />
+		{% endfor %}
+	</body>
+</html>
