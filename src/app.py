@@ -1,6 +1,9 @@
-from flask import Flask, request
+from flask import Flask, request, Response
 from model.classify import email_body_classifier
 import os
+import requests
+import config
+import json
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -29,3 +32,22 @@ def find_look_alikes():
         if letter in LOOK_ALIKES:
             return "true"
     return "false"
+
+
+@app.post("/scan-file-hash")
+def scan_file_hash():
+    hash = request.data.decode("utf-8")
+    results = requests.get(
+        f"https://www.virustotal.com/api/v3/files/{hash}", headers={"x-apikey": config.API_KEY})
+    results = json.loads(results)
+
+    data: dict = {
+        "result": results["sandbox_verdicts"]["category"],
+        "confidence": results["sandbox_verdicts"]["confidence"],
+        "user_votes": results["total_votes"]["malicious"]
+    }
+    d = json.dumps(data)
+
+    response = Response(d)
+    response.headers["Content-Type"] = "application/json"
+    return response

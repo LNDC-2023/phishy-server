@@ -134,3 +134,4 @@ dist
 #######################
 *.joblib
 __pycache__/
+config.py
