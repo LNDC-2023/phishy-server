@@ -9,6 +9,8 @@ import re
 import base64
 from collections import defaultdict
 import pandas as pd
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import check_password_hash, generate_password_hash
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -21,13 +23,24 @@ with open(f"{CURRENT_DIR}/look-alikes.txt", "r", encoding="utf-8") as file:
 
 app = Flask(__name__)
 CORS(app, resources={r"*": {"origins": "*"}})
+auth = HTTPBasicAuth()
+
+ADMIN_PASSWORD = generate_password_hash(config.ADMIN_PASSWORD)
+
+
+@auth.verify_password
+def verify_password(username, password):
+    if username == "admin" and check_password_hash(ADMIN_PASSWORD, password):
+        return username
 
 ##### report frontend and backend #########################
+
 
 REPORTED_FILE = f"{CURRENT_DIR}/reported.json"
 
 
 @app.route("/")
+@auth.login_required
 def review_reports():
     with open(REPORTED_FILE, "r") as file:
         content = file.read()
@@ -122,7 +135,7 @@ def find_look_alikes():
 def scan_file_hash():
     hash = request.data.decode("utf-8")
     results = requests.get(
-        f"https://www.virustotal.com/api/v3/files/{hash}", headers={"x-apikey": config.API_KEY}).json()
+        f"https: //www.virustotal.com/api/v3/files/{hash}", headers={"x-apikey": config.API_KEY}).json()
     results = results["data"]["attributes"]
 
     # get category
@@ -147,7 +160,7 @@ def find_bad_urls():
     # parse urls
     email_body = request.data.decode("utf-8")
     urls: list[str] = re.findall(
-        "(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})", email_body)
+        r"(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})", email_body)
 
     if len(urls) == 0:
         return ""
@@ -159,7 +172,7 @@ def find_bad_urls():
         url_id = base64.urlsafe_b64encode(
             url.encode()).decode().strip("=")
         result = requests.get(
-            f"https://www.virustotal.com/api/v3/urls/{url_id}", headers={"x-apikey": config.API_KEY}).json()
+            f"https: //www.virustotal.com/api/v3/urls/{url_id}", headers={"x-apikey": config.API_KEY}).json()
         try:
             result = result["data"]["attributes"]
             category = max(result["last_analysis_stats"],
