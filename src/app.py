@@ -4,6 +4,8 @@ import os
 import requests
 import config
 import json
+import re
+import base64
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -45,6 +47,36 @@ def scan_file_hash():
         "result": results["sandbox_verdicts"]["category"],
         "confidence": results["sandbox_verdicts"]["confidence"],
         "user_votes": results["total_votes"]["malicious"]
+    }
+    d = json.dumps(data)
+
+    response = Response(d)
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+
+@app.post("/find-bad-urls")
+def find_bad_urls():
+    email_body = request.data.decode("utf-8")
+    urls: list[str] = re.findall(
+        "(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})", email_body)
+
+    if len(urls) == 0:
+        return ""
+
+    categories: list = []
+
+    for url in urls:
+        url_id = base64.urlsafe_b64encode(
+            url.encode()).decode().strip("=")
+        result = requests.get(
+            f"https://www.virustotal.com/api/v3/urls/{url_id}", headers={"x-apikey": config.API_KEY})
+
+        categories.append(result["last_analysis_results"]["category"])
+
+    data: dict = {
+        urls: urls,
+        categories: categories
     }
     d = json.dumps(data)
 
