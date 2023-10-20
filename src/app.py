@@ -1,4 +1,5 @@
 from flask import Flask, request, Response
+from flask_cors import CORS
 from model.classify import email_body_classifier
 import os
 import requests
@@ -18,6 +19,7 @@ with open(f"{CURRENT_DIR}/look-alikes.txt", "r", encoding="utf-8") as file:
 ###########################################################
 
 app = Flask(__name__)
+CORS(app, resources={r"*": {"origins": "*"}})
 
 
 @app.post("/email-body-classification")
