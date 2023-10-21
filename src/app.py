@@ -125,6 +125,31 @@ def report_mail():
 
 ###########################################################
 
+def found_bad_urls(email_body: str) -> bool:
+    # parse urls
+    urls: list[str] = re.findall(
+        r"(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})", email_body)
+
+    if len(urls) == 0:
+        return ""
+
+    # scan every url
+    for url in urls:
+        url_id = base64.urlsafe_b64encode(
+            url.encode()).decode().strip("=")
+        result = requests.get(
+            f"https: //www.virustotal.com/api/v3/urls/{url_id}", headers={"x-apikey": config.API_KEY}).json()
+        try:
+            result = result["data"]["attributes"]
+            category = max(result["last_analysis_stats"],
+                           key=result["last_analysis_stats"].get)
+            if category in ["malicious", "suspicious"]:
+                return True
+        except:
+            continue # unscanned
+    return False
+
+
 @app.post("/email-body-classification")
 def classify_email_body():
     data: dict = request.json
@@ -137,6 +162,10 @@ def classify_email_body():
 
     email_body: str = data["body"]
     prediction: str = email_body_classifier.predict(email_body)
+
+    if found_bad_urls(email_body):
+        prediction = "Phishing"
+
     return prediction
 
 
@@ -155,55 +184,24 @@ def scan_file_hash():
     hash = request.data.decode("utf-8")
     results = requests.get(
         f"https: //www.virustotal.com/api/v3/files/{hash}", headers={"x-apikey": config.API_KEY}).json()
-    results = results["data"]["attributes"]
+    
+    try:
+        results = results["data"]["attributes"]
 
-    # get category
-    stats = results["last_analysis_stats"]
-    possibilities = {"harmless": stats["harmless"], "malicious": stats["malicious"],
-                     "suspicious": stats["suspicious"], "undetected": stats["undetected"]}
-    category = max(possibilities, key=possibilities.get)
+        # get category
+        stats = results["last_analysis_stats"]
+        possibilities = {"harmless": stats["harmless"], "malicious": stats["malicious"],
+                        "suspicious": stats["suspicious"], "undetected": stats["undetected"]}
+        category = max(possibilities, key=possibilities.get)
+        user_votes = results["total_votes"]["malicious"]
+    except:
+        category = "undetected"
+        user_votes = "0"
 
     data: dict = {
         "result": category,
-        "user_votes": results["total_votes"]["malicious"]
+        "user_votes": user_votes
     }
-    d = json.dumps(data)
-
-    response = Response(d)
-    response.headers["Content-Type"] = "application/json"
-    return response
-
-
-@app.post("/find-bad-urls")
-def find_bad_urls():
-    # parse urls
-    email_body = request.data.decode("utf-8")
-    urls: list[str] = re.findall(
-        r"(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})", email_body)
-
-    if len(urls) == 0:
-        return ""
-
-    categories: list = []
-
-    # scan every url
-    for url in urls:
-        url_id = base64.urlsafe_b64encode(
-            url.encode()).decode().strip("=")
-        result = requests.get(
-            f"https: //www.virustotal.com/api/v3/urls/{url_id}", headers={"x-apikey": config.API_KEY}).json()
-        try:
-            result = result["data"]["attributes"]
-            category = max(result["last_analysis_stats"],
-                           key=result["last_analysis_stats"].get)
-            categories.append(category)
-        except:
-            # wasn't scanned by VirusTotal
-            categories.append("unscanned")
-
-    data = defaultdict(list)
-    data["urls"] = urls
-    data["categories"] = categories
     d = json.dumps(data)
 
     response = Response(d)
