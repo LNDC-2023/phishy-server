@@ -20,9 +20,9 @@ class EmailBodyClassifier:
 
         for _, row in df.iterrows():
             if row["Type"] == "Fraud" or row["Type"] == "Phishing":
-                row["Type"] = "Phishing Email"
+                row["Type"] = "Phishing"
             else:
-                row["Type"] = "Safe Email"
+                row["Type"] = "Safe"
 
         self.X = df["Text"].values
         self.y = df["Type"].values
