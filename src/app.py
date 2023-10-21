@@ -184,7 +184,7 @@ def find_look_alikes():
             return "true"
     return "false"
 
-
+"""
 @app.post("/scan-file-hash")
 def scan_file_hash():
     hash = request.data.decode("utf-8")
@@ -213,3 +213,4 @@ def scan_file_hash():
     response = Response(d)
     response.headers["Content-Type"] = "application/json"
     return response
+"""
