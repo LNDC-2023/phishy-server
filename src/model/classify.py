@@ -53,12 +53,12 @@ class EmailBodyClassifier:
 ################################################################
 
 
-email_body_classifier: EmailBodyClassifier = None  # for external usage
-clf_path: str = f"{CURRENT_DIR}/emailbodyclf.joblib"
+#email_body_classifier: EmailBodyClassifier = None  # for external usage
+#clf_path: str = f"{CURRENT_DIR}/emailbodyclf.joblib"
 
-if os.path.exists(clf_path):
-    email_body_classifier = joblib.load(clf_path)
-else:
-    email_body_classifier = EmailBodyClassifier()
-    email_body_classifier.train(test_size=0, n_estimators=100)
-    joblib.dump(email_body_classifier, clf_path, compress=True)
+#if os.path.exists(clf_path):
+#    email_body_classifier = joblib.load(clf_path)
+#else:
+email_body_classifier = EmailBodyClassifier()
+email_body_classifier.train(test_size=0, n_estimators=100)
+#joblib.dump(email_body_classifier, f"{CURRENT_DIR}/emailbodyclf.joblib", compress=True)
