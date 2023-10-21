@@ -13,17 +13,18 @@ CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 class EmailBodyClassifier:
     def __init__(self) -> None:
         # prepare datasetb & data
-        df: pd.DataFrame = pd.read_csv(f"{CURRENT_DIR}/Phishing_Email.csv")
+        df: pd.DataFrame = pd.read_csv(f"{CURRENT_DIR}/phishing_data_by_type.csv")
         df = df.dropna()
+        df = df.drop("Subject", axis=1)
 
-        # downsampling, so there are the same amount of phishing and safe emails
-        safe_emails = df[df["Email Type"] == "Safe Email"]
-        phishing_emails = df[df["Email Type"] == "Phishing Email"]
-        safe_emails = safe_emails.sample(phishing_emails.shape[0])
+        for _, row in df.iterrows():
+            if row["Type"] == "Fraud" or row["Type"] == "Phishing":
+                row["Type"] = "Phishing Email"
+            else:
+                row["Type"] = "Safe Email"
 
-        data = pd.concat([safe_emails, phishing_emails], ignore_index=True)
-        self.X = data["Email Text"].values
-        self.y = data["Email Type"].values
+        self.X = df["Text"].values
+        self.y = df["Type"].values
 
     def train(self, test_size=0.2, n_estimators=100) -> None:
         X_train, self.X_test, y_train, self.y_test = train_test_split(
@@ -44,7 +45,6 @@ class EmailBodyClassifier:
         return predicted[0]
 
 ################################################################
-
 
 email_body_classifier: EmailBodyClassifier = None  # for external usage
 clf_path: str = f"{CURRENT_DIR}/emailbodyclf.joblib"
