@@ -86,8 +86,7 @@ def accept_mail():
     remove_entry_from_json(i)
 
     # add to dataset
-    df: pd.DataFrame = pd.read_csv(
-        f"{CURRENT_DIR}/model/phishing_data_by_type.csv")
+    df: pd.DataFrame = pd.read_csv(f"{CURRENT_DIR}/model/phishing_data_by_type.csv")
     df.loc[len(df.index)] = [email_text, email_type]
 
     # add to whitelist
