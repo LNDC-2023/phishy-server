@@ -38,6 +38,7 @@ def verify_password(username, password):
 
 REPORTED_FILE = f"{CURRENT_DIR}/reported.json"
 WHITELIST_FILE = f"{CURRENT_DIR}/whitelist.txt"
+BLACKLIST_FILE = f"{CURRENT_DIR}/blacklist.txt"
 
 
 @app.route("/")
@@ -92,8 +93,12 @@ def accept_mail():
     df.to_csv(f"{CURRENT_DIR}/model/phishing_data_by_type.csv")
 
     # add to whitelist
-    with open(WHITELIST_FILE, "a") as file:
-        file.write(f"{sender_address}\n")
+    if email_type == "Safe":
+        with open(WHITELIST_FILE, "a") as file:
+            file.write(f"{sender_address}\n")
+    else:
+        with open(BLACKLIST_FILE, "a") as file:
+            file.write(f"{sender_address}\n")
 
     return "Success", 200
 
@@ -156,9 +161,18 @@ def classify_email_body():
     sender_address: str = data["sender_address"]
 
     with open(WHITELIST_FILE, "r") as file:
-        whitelist = file.read()
-        if sender_address in whitelist:
-            return "Safe"
+        lines = file.readlines()
+        for line in lines:
+            line = line.replace("\n", "")
+            if line == sender_address:
+                return "Safe"
+            
+    with open(BLACKLIST_FILE, "r") as file:
+        lines = file.readlines()
+        for line in lines:
+            line = line.replace("\n", "")
+            if line == sender_address:
+                return "Phishing"
 
     email_body: str = data["body"]
     prediction: str = email_body_classifier.predict(email_body)
