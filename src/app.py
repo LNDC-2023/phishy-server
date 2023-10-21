@@ -77,8 +77,8 @@ def accept_mail():
 
     with open(REPORTED_FILE, "r") as file:
         data = json.loads(file.read())[i]
-        email_text = data["Email Text"]
-        email_type = data["Email Type"]
+        email_text = data["Text"]
+        email_type = data["Type"]
 
     remove_entry_from_json(i)
 
@@ -95,8 +95,8 @@ def report_mail():
     type: str = "Phishing Email"
 
     data: dict = {
-        "Email Text": email_body,
-        "Email Type": type
+        "Text": email_body,
+        "Type": type
     }
 
     # temporarily save to reported.json until review
