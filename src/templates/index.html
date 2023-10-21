@@ -27,7 +27,8 @@
 	</head>
 	<body>
 		{% for mail in data %}
-		<p>{{mail["Email Text"]}}</p>
+		<h2>{{mail["Type"]}} by {{mail["sender_address"]}}</h2>
+		<p>{{mail["Text"]}}</p>
 		<br />
 		<button onclick="sendIndex({{loop.index0}}, '/accept-mail')">✅</button>
 		<button onclick="sendIndex({{loop.index0}}, '/reject-mail')">❌</button>

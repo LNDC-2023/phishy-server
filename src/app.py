@@ -37,6 +37,7 @@ def verify_password(username, password):
 
 
 REPORTED_FILE = f"{CURRENT_DIR}/reported.json"
+WHITELIST_FILE = f"{CURRENT_DIR}/whitelist.txt"
 
 
 @app.route("/")
@@ -66,6 +67,7 @@ def reject_mail():
         return "Failed", 500
 
     remove_entry_from_json(i)
+    return "Success", 200
 
 
 @app.post("/accept-mail")
@@ -79,24 +81,33 @@ def accept_mail():
         data = json.loads(file.read())[i]
         email_text = data["Text"]
         email_type = data["Type"]
+        sender_address = data["sender_address"]
 
     remove_entry_from_json(i)
 
     # add to dataset
-    df: pd.DataFrame = pd.read_csv(f"{CURRENT_DIR}/model/phishing_data_by_type.csv")
+    df: pd.DataFrame = pd.read_csv(
+        f"{CURRENT_DIR}/model/phishing_data_by_type.csv")
     df.loc[len(df.index)] = [email_text, email_type]
+
+    # add to whitelist
+    with open(WHITELIST_FILE, "a") as file:
+        file.write(f"{sender_address}\n")
 
     return "Success", 200
 
 
 @app.post("/report-mail")
 def report_mail():
-    email_body: str = request.data.decode("utf-8")
-    type: str = "Phishing Email"
+    data: dict = request.json
+    sender_address: str = data["sender_address"]
+    email_body: str = data["body"]
+    type: str = data["type"]
 
     data: dict = {
         "Text": email_body,
-        "Type": type
+        "Type": type,
+        "sender_address": sender_address
     }
 
     # temporarily save to reported.json until review
@@ -115,7 +126,15 @@ def report_mail():
 
 @app.post("/email-body-classification")
 def classify_email_body():
-    email_body: str = request.data.decode("utf-8")
+    data: dict = request.json
+    sender_address: str = data["sender_address"]
+
+    with open(WHITELIST_FILE, "r") as file:
+        whitelist = file.read()
+        if sender_address in whitelist:
+            return "Safe"
+
+    email_body: str = data["body"]
     prediction: str = email_body_classifier.predict(email_body)
     return prediction
 
