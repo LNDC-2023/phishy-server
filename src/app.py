@@ -183,7 +183,7 @@ def find_look_alikes():
 def scan_file_hash():
     hash = request.data.decode("utf-8")
     results = requests.get(
-        f"https: //www.virustotal.com/api/v3/files/{hash}", headers={"x-apikey": config.API_KEY}).json()
+        f"https://www.virustotal.com/api/v3/files/{hash}", headers={"x-apikey": config.API_KEY}).json()
     
     try:
         results = results["data"]["attributes"]
