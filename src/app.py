@@ -138,7 +138,7 @@ def found_bad_urls(email_body: str) -> bool:
         url_id = base64.urlsafe_b64encode(
             url.encode()).decode().strip("=")
         result = requests.get(
-            f"https: //www.virustotal.com/api/v3/urls/{url_id}", headers={"x-apikey": config.API_KEY}).json()
+            f"https://www.virustotal.com/api/v3/urls/{url_id}", headers={"x-apikey": config.API_KEY}).json()
         try:
             result = result["data"]["attributes"]
             category = max(result["last_analysis_stats"],
