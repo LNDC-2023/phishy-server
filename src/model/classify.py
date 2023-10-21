@@ -13,7 +13,8 @@ CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 class EmailBodyClassifier:
     def __init__(self) -> None:
         # prepare datasetb & data
-        df: pd.DataFrame = pd.read_csv(f"{CURRENT_DIR}/phishing_data_by_type.csv")
+        df: pd.DataFrame = pd.read_csv(
+            f"{CURRENT_DIR}/phishing_data_by_type.csv")
         df = df.dropna()
         df = df.drop("Subject", axis=1)
 
@@ -27,8 +28,13 @@ class EmailBodyClassifier:
         self.y = df["Type"].values
 
     def train(self, test_size=0.2, n_estimators=100) -> None:
-        X_train, self.X_test, y_train, self.y_test = train_test_split(
-            self.X, self.y, test_size=test_size)
+
+        if test_size == 0:
+            X_train = self.X
+            y_train = self.y
+        else:
+            X_train, self.X_test, y_train, self.y_test = train_test_split(
+                self.X, self.y, test_size=test_size)
 
         self.clf = Pipeline([("tfidf", TfidfVectorizer(
         )), ("classifier", RandomForestClassifier(n_estimators=n_estimators))])
@@ -46,6 +52,7 @@ class EmailBodyClassifier:
 
 ################################################################
 
+
 email_body_classifier: EmailBodyClassifier = None  # for external usage
 clf_path: str = f"{CURRENT_DIR}/emailbodyclf.joblib"
 
@@ -53,5 +60,5 @@ if os.path.exists(clf_path):
     email_body_classifier = joblib.load(clf_path)
 else:
     email_body_classifier = EmailBodyClassifier()
-    email_body_classifier.train(test_size=None, n_estimators=100)
+    email_body_classifier.train(test_size=0, n_estimators=100)
     joblib.dump(email_body_classifier, clf_path, compress=True)
